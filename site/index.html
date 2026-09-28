@@ -48,21 +48,21 @@
     .bar-value { min-width: 72px; text-align: right; font-variant-numeric: tabular-nums; font-size: .76rem; line-height: 1.25; }
     .bar-value strong { display: block; font-weight: 650; }
     .bar-value small { display: block; color: var(--muted); font-size: .68rem; }
-    .analysis-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 14px; align-items: start; }
-    .panel h2 { font-size: 1.45rem; }
-    .rank-list { margin-top: 20px; }
-    .rank-row { padding: 11px 0 9px; border-bottom: 1px solid var(--line); }
-    .rank-main { display: grid; grid-template-columns: minmax(105px, .85fr) minmax(45px, 1fr) auto; gap: 10px; align-items: center; }
-    .rank-name { overflow-wrap: anywhere; font: .82rem/1.25 ui-monospace, SFMono-Regular, Menlo, monospace; }
-    .rank-track { height: 10px; overflow: hidden; border-radius: 99px; background: var(--track); }
-    .rank-fill { display: block; height: 100%; border-radius: inherit; background: var(--orange); }
-    .rank-ratio { min-width: 56px; text-align: right; font-size: .86rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .rank-detail { margin: 5px 0 0; color: var(--muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
-    .only-ai { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
-    .only-ai h3 { margin-bottom: 5px; }
-    .only-ai p { margin: 0 0 12px; color: var(--muted); font-size: .82rem; }
-    .only-ai .bar-fill { background: var(--teal); }
-    .human-list .rank-fill { background: var(--blue); }
+    .profile-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+    .profile { background: var(--card); border: 1px solid var(--line); border-top: 4px solid var(--profile-color, var(--blue)); border-radius: 15px; padding: 18px; }
+    .profile h3 { font: 600 1.28rem/1.2 Georgia, serif; }
+    .profile-subtitle { margin: 5px 0 17px; color: var(--muted); font-size: .8rem; }
+    .profile-group + .profile-group { margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--line); }
+    .profile-group h4 { margin: 0 0 3px; font-size: .86rem; }
+    .profile-group > p { margin: 0 0 8px; color: var(--muted); font-size: .72rem; line-height: 1.4; }
+    .profile-list { margin: 0; padding: 0; list-style: none; }
+    .profile-item { padding: 8px 0; border-top: 1px solid #edf0ef; }
+    .profile-item:first-child { border-top: 0; }
+    .profile-item-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .profile-name { min-width: 0; overflow-wrap: anywhere; font: .8rem/1.25 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .profile-metric { flex: 0 0 auto; color: var(--profile-color, var(--blue)); font-size: .76rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+    .profile-detail { margin: 3px 0 0; color: var(--muted); font-size: .69rem; line-height: 1.45; font-variant-numeric: tabular-nums; }
+    .profile-empty { color: var(--muted); font-size: .75rem; font-style: italic; }
     .source-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
     .source-card {
       display: block; width: 100%; border: 1px solid var(--line); border-radius: 13px;
@@ -95,7 +95,7 @@
     @media (max-width: 900px) {
       main { padding: 42px 20px 60px; }
       .top-grid { grid-template-columns: 1fr; }
-      .analysis-grid { grid-template-columns: 1fr; }
+      .profile-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 650px) {
       main { padding: 34px 14px 48px; }
@@ -103,8 +103,7 @@
       .source-cards { grid-template-columns: 1fr; }
       .top-panel, .panel { padding: 17px 14px; }
       .panel-head { align-items: start; flex-direction: column; }
-      .rank-main { grid-template-columns: minmax(100px, .9fr) minmax(35px, 1fr) auto; gap: 7px; }
-      .rank-detail { line-height: 1.5; }
+      .profile { padding: 17px 14px; }
     }
   </style>
 </head>
@@ -127,27 +126,12 @@
     <section class="section" aria-labelledby="difference-title">
       <div class="section-head">
         <div>
-          <h2 id="difference-title">Where the distributions differ</h2>
-          <p>These are corpus comparisons: Mathlib is a broad human-authored library, while each certificate covers a narrow theorem.</p>
+          <h2 id="difference-title">Distinctive patterns in each codebase</h2>
+          <p>Each list compares a source’s share of tracked matches with the other two. These are clues about corpus style, not a controlled comparison of authors.</p>
         </div>
       </div>
-      <div class="analysis-grid">
-        <section class="panel" aria-labelledby="ai-title">
-          <h2 id="ai-title">Higher share in the AI certificates</h2>
-          <p class="panel-copy">Ranked by the average of the two certificate shares divided by Mathlib’s share. Each project gets equal weight. Only tactics with at least 100 Mathlib matches are ranked, to limit tiny denominators.</p>
-          <div id="ai-skewed" class="rank-list"><div class="loading">Loading comparison…</div></div>
-          <div class="only-ai">
-            <h3>Used in a certificate, with no Mathlib matches</h3>
-            <p>Zero-baseline cases have no finite ratio, so they are listed separately.</p>
-            <div id="ai-only" class="rank-list"></div>
-          </div>
-        </section>
-        <section class="panel" aria-labelledby="human-title">
-          <h2 id="human-title">Frequent in Mathlib, absent from both certificates</h2>
-          <p class="panel-copy">These spellings have Mathlib matches and zero matches in both certificate repositories. Some are specialized to Mathlib’s wider range of topics.</p>
-          <div id="human-only" class="rank-list human-list"><div class="loading">Loading comparison…</div></div>
-        </section>
-      </div>
+      <p class="panel-copy">A “more used” entry needs at least 100 matches here, at least 100 in one peer, and a 1.5× share advantage over both peers. “Less used” needs at least 100 matches in each peer and a share at most half of both. “Only here” means 100 or more matches here and none in either peer.</p>
+      <div id="profiles" class="profile-grid"><div class="loading">Loading comparisons…</div></div>
     </section>
 
     <section class="section" aria-labelledby="detail-title">
@@ -255,105 +239,111 @@
       });
     }
 
-    function makeRankRow({ tactic, ratio, detail, color, width, label }) {
-      const row = document.createElement("div");
-      row.className = "rank-row";
-      const main = document.createElement("div");
-      main.className = "rank-main";
+    function pct(source, tactic) {
+      return (100 * rate(source, tactic)).toFixed(3);
+    }
+
+    function profileItem(tactic, metric, detail) {
+      const item = document.createElement("li");
+      item.className = "profile-item";
+      const head = document.createElement("div");
+      head.className = "profile-item-head";
       const name = document.createElement("code");
-      name.className = "rank-name";
+      name.className = "profile-name";
       name.textContent = tactic;
-      const track = document.createElement("span");
-      track.className = "rank-track";
-      track.setAttribute("aria-hidden", "true");
-      const fill = document.createElement("span");
-      fill.className = "rank-fill";
-      fill.style.width = `${Math.max(2, width)}%`;
-      if (color) fill.style.background = color;
-      track.append(fill);
       const value = document.createElement("span");
-      value.className = "rank-ratio";
-      value.textContent = label;
-      main.append(name, track, value);
-      row.append(main);
-      if (detail) {
-        const small = document.createElement("p");
-        small.className = "rank-detail";
-        small.textContent = detail;
-        row.append(small);
+      value.className = "profile-metric";
+      value.textContent = metric;
+      head.append(name, value);
+      const sub = document.createElement("p");
+      sub.className = "profile-detail";
+      sub.textContent = detail;
+      item.append(head, sub);
+      return item;
+    }
+
+    function profileGroup(title, explanation, rows) {
+      const group = document.createElement("section");
+      group.className = "profile-group";
+      const heading = document.createElement("h4");
+      heading.textContent = title;
+      const copy = document.createElement("p");
+      copy.textContent = explanation;
+      const list = document.createElement("ul");
+      list.className = "profile-list";
+      if (rows.length) rows.forEach(row => list.append(row));
+      else {
+        const empty = document.createElement("li");
+        empty.className = "profile-empty";
+        empty.textContent = "No tactics meet this cutoff.";
+        list.append(empty);
       }
-      return row;
+      group.append(heading, copy, list);
+      return group;
     }
 
-    function perThousand(source, tactic) {
-      return (rate(source, tactic) * 1000).toFixed(2);
-    }
+    function renderProfiles() {
+      const host = document.getElementById("profiles");
+      host.replaceChildren();
+      const allNames = new Set(sources.flatMap(source => Object.keys(source.tactics)));
+      const colors = ["var(--blue)", "var(--teal)", "var(--orange)"];
+      sources.forEach((source, index) => {
+        const peers = sources.filter(candidate => candidate !== source);
+        const panel = document.createElement("article");
+        panel.className = "profile";
+        panel.style.setProperty("--profile-color", colors[index]);
+        const title = document.createElement("h3");
+        title.textContent = source.name;
+        const subtitle = document.createElement("p");
+        subtitle.className = "profile-subtitle";
+        subtitle.textContent = `${number.format(source.total_tactic_mentions)} tracked matches`;
 
-    function renderDifferences() {
-      const mathlib = sources.find(source => source.id === "mathlib");
-      const ns = sources.find(source => source.id === "openai-navier-stokes");
-      const flt = sources.find(source => source.id === "anthropic-flt");
-      const allNames = new Set([...Object.keys(mathlib.tactics), ...Object.keys(ns.tactics), ...Object.keys(flt.tactics)]);
-      const ratios = [...allNames]
-        .map(tactic => {
-          const humanCount = mathlib.tactics[tactic] || 0;
-          const aiRate = (rate(ns, tactic) + rate(flt, tactic)) / 2;
-          return { tactic, humanCount, aiRate, ratio: humanCount ? aiRate / rate(mathlib, tactic) : Infinity };
-        })
-        .filter(row => row.humanCount >= 100 && row.aiRate > 0 && Number.isFinite(row.ratio))
-        .sort((a, b) => b.ratio - a.ratio || a.tactic.localeCompare(b.tactic))
-        .slice(0, 10);
-      const ratioHost = document.getElementById("ai-skewed");
-      ratioHost.replaceChildren();
-      const maxRatio = Math.max(1, ...ratios.map(row => row.ratio));
-      ratios.forEach(row => {
-        ratioHost.append(makeRankRow({
-          tactic: row.tactic,
-          ratio: row.ratio,
-          width: 100 * row.ratio / maxRatio,
-          label: `${row.ratio.toFixed(1)}×`,
-          color: "var(--orange)",
-          detail: `Per 1,000 matches — Mathlib ${perThousand(mathlib, row.tactic)} · Navier–Stokes ${perThousand(ns, row.tactic)} · FLT ${perThousand(flt, row.tactic)}`
-        }));
-      });
-
-      const onlyAi = [...allNames]
-        .filter(tactic => !mathlib.tactics[tactic] && ((ns.tactics[tactic] || 0) + (flt.tactics[tactic] || 0) > 0))
-        .sort((a, b) => ((ns.tactics[b] || 0) + (flt.tactics[b] || 0)) - ((ns.tactics[a] || 0) + (flt.tactics[a] || 0)) || a.localeCompare(b));
-      const aiOnlyHost = document.getElementById("ai-only");
-      aiOnlyHost.replaceChildren();
-      const aiOnlyTop = onlyAi.slice(0, 8);
-      const maxAiOnly = Math.max(1, ...aiOnlyTop.map(t => (ns.tactics[t] || 0) + (flt.tactics[t] || 0)));
-      aiOnlyTop.forEach(tactic => {
-        const n = ns.tactics[tactic] || 0;
-        const f = flt.tactics[tactic] || 0;
-        aiOnlyHost.append(makeRankRow({
+        const comparisons = [...allNames].map(tactic => ({
           tactic,
-          width: 100 * (n + f) / maxAiOnly,
-          label: compact.format(n + f),
-          color: "var(--teal)",
-          detail: `Navier–Stokes ${number.format(n)} · FLT ${number.format(f)}`
+          count: source.tactics[tactic] || 0,
+          share: rate(source, tactic),
+          peerCounts: peers.map(peer => peer.tactics[tactic] || 0),
+          peerShares: peers.map(peer => rate(peer, tactic)),
+          peerNames: peers.map(peer => peer.name)
         }));
-      });
-      if (!aiOnlyTop.length) aiOnlyHost.textContent = "None in the current tracked list.";
-      const aiOnlyHeading = document.querySelector(".only-ai h3");
-      aiOnlyHeading.textContent = `Certificate-only spellings (${onlyAi.length})`;
+        const more = comparisons
+          .map(row => ({ ...row, ratio: row.share / Math.max(...row.peerShares) }))
+          .filter(row => row.count >= 100 && Math.max(...row.peerCounts) >= 100 && row.ratio >= 1.5)
+          .sort((a, b) => b.ratio - a.ratio || b.count - a.count || a.tactic.localeCompare(b.tactic))
+          .slice(0, 5)
+          .map(row => profileItem(
+            row.tactic,
+            `${row.ratio.toFixed(1)}× both`,
+            `${number.format(row.count)} here · ${pct(source, row.tactic)}% here; ${row.peerNames.map((name, i) => `${name} ${pct(peers[i], row.tactic)}%`).join(" · ")}`
+          ));
+        const only = comparisons
+          .filter(row => row.count >= 100 && row.peerCounts.every(count => count === 0))
+          .sort((a, b) => b.count - a.count || a.tactic.localeCompare(b.tactic))
+          .slice(0, 3)
+          .map(row => profileItem(
+            row.tactic,
+            number.format(row.count),
+            `${pct(source, row.tactic)}% of this source’s tracked matches · no matches in either peer`
+          ));
+        const less = comparisons
+          .map(row => ({ ...row, ratio: row.share / Math.min(...row.peerShares) }))
+          .filter(row => row.peerCounts.every(count => count >= 100) && row.ratio <= 0.5)
+          .sort((a, b) => a.ratio - b.ratio || Math.min(...b.peerShares) - Math.min(...a.peerShares) || a.tactic.localeCompare(b.tactic))
+          .slice(0, 5)
+          .map(row => profileItem(
+            row.tactic,
+            `${row.ratio.toFixed(2)}× peer min`,
+            `${number.format(row.count)} here · ${pct(source, row.tactic)}% here; ${row.peerNames.map((name, i) => `${name} ${pct(peers[i], row.tactic)}%`).join(" · ")}`
+          ));
 
-      const humanOnly = [...Object.entries(mathlib.tactics)]
-        .filter(([tactic]) => !(ns.tactics[tactic] || 0) && !(flt.tactics[tactic] || 0))
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-        .slice(0, 12);
-      const humanHost = document.getElementById("human-only");
-      humanHost.replaceChildren();
-      const maxHuman = Math.max(1, ...humanOnly.map(([, count]) => count));
-      humanOnly.forEach(([tactic, count]) => {
-        humanHost.append(makeRankRow({
-          tactic,
-          width: 100 * count / maxHuman,
-          label: compact.format(count),
-          color: "var(--blue)",
-          detail: `${number.format(count)} Mathlib matches · ${(100 * count / mathlib.total_tactic_mentions).toFixed(3)}% of tracked matches`
-        }));
+        panel.append(
+          title,
+          subtitle,
+          profileGroup("More used than both", "Top five, ranked by share relative to the higher-using peer.", more),
+          profileGroup("Only in this corpus", "Up to five highest counts; 100 or more matches here and zero in both peers.", only),
+          profileGroup("Less used than both", "Top five, ranked by share relative to the lower-using peer.", less)
+        );
+        host.append(panel);
       });
     }
 
@@ -465,7 +455,7 @@
         data = loaded;
         sources = data.sources;
         renderTopCharts();
-        renderDifferences();
+        renderProfiles();
         renderCards();
         renderProject();
         document.getElementById("search").addEventListener("input", updateRows);
