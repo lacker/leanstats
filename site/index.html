@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lean tactic counts</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #152536;
+      --muted: #617184;
+      --paper: #f6f5f0;
+      --card: #ffffff;
+      --line: #dfe4e4;
+      --blue: #206b86;
+      --mint: #a3e3c2;
+      --pale: #e8f4ef;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main { max-width: 1120px; margin: 0 auto; padding: 56px 28px 72px; }
+    .eyebrow { color: var(--blue); font-size: .76rem; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { margin: 10px 0 8px; font: 600 clamp(2.25rem, 6vw, 4rem)/1.05 Georgia, serif; letter-spacing: -.045em; }
+    .lede { max-width: 670px; color: var(--muted); font-size: 1.05rem; }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 30px 0 28px; }
+    .source-card {
+      display: block; width: 100%; border: 1px solid var(--line); border-radius: 14px;
+      background: var(--card); padding: 18px 20px; color: inherit; text-align: left; cursor: pointer;
+      transition: border-color .15s, transform .15s, box-shadow .15s;
+    }
+    .source-card:hover { transform: translateY(-2px); }
+    .source-card.active { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue); }
+    .source-card strong { display: block; font-size: 1rem; }
+    .source-card .total { display: block; margin-top: 9px; font: 600 1.5rem/1.2 Georgia, serif; }
+    .source-card .sub { display: block; color: var(--muted); font-size: .84rem; margin-top: 2px; }
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 24px; }
+    .panel-head { display: flex; gap: 18px; align-items: end; justify-content: space-between; margin-bottom: 12px; }
+    h2 { margin: 0; font: 600 1.65rem/1.2 Georgia, serif; }
+    .revision { color: var(--muted); font: .78rem ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .search { margin-top: 18px; width: min(100%, 320px); padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; font: inherit; }
+    .chart-wrap { overflow-x: auto; }
+    svg { display: block; min-width: 620px; width: 100%; }
+    .bar-label { fill: var(--ink); font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .bar-value { fill: var(--muted); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .bar { fill: var(--blue); }
+    .bar:nth-of-type(3n) { fill: #348c8b; }
+    .rule { stroke: var(--line); stroke-width: 1; }
+    .table-wrap { overflow-x: auto; margin-top: 8px; }
+    table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+    th, td { padding: 9px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+    th { color: var(--muted); font-size: .78rem; font-weight: 650; text-transform: uppercase; letter-spacing: .06em; }
+    td:last-child, th:last-child { text-align: right; }
+    td code { background: var(--pale); border-radius: 4px; padding: 2px 5px; font-size: .87rem; }
+    .note { margin: 20px 2px 0; color: var(--muted); font-size: .87rem; }
+    .source-link { color: var(--blue); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    .empty, .loading { color: var(--muted); padding: 24px 8px; }
+    @media (max-width: 760px) {
+      main { padding: 38px 16px 48px; }
+      .cards { grid-template-columns: 1fr; }
+      .panel { padding: 18px 14px; }
+      .panel-head { align-items: start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">A small Lean source-text study</div>
+    <h1>Which tactics show up?</h1>
+    <p class="lede">A side-by-side look at written tactic names in mathlib and two recent Lean certificates. Choose a project to see its raw counts.</p>
+    <section id="source-cards" class="cards" aria-label="Choose a source">
+      <div class="loading">Loading counts…</div>
+    </section>
+    <section class="panel" aria-labelledby="project-title">
+      <div class="panel-head">
+        <div>
+          <h2 id="project-title">Tactics</h2>
+          <div id="project-meta" class="sub"></div>
+        </div>
+        <div id="revision" class="revision"></div>
+      </div>
+      <input id="search" class="search" type="search" placeholder="Filter tactic names" aria-label="Filter tactic names">
+      <div class="chart-wrap">
+        <svg id="chart" role="img" aria-label="Horizontal bars showing tactic-name counts"></svg>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Tactic spelling</th><th scope="col">Occurrences</th></tr></thead>
+          <tbody id="tactic-rows"></tbody>
+        </table>
+      </div>
+      <p id="note" class="note"></p>
+    </section>
+  </main>
+  <script>
+    const number = new Intl.NumberFormat();
+    const NS = "http://www.w3.org/2000/svg";
+    let sources = [];
+    let active = 0;
+
+    function addSvg(tag, attrs, text) {
+      const node = document.createElementNS(NS, tag);
+      for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function renderCards() {
+      const host = document.getElementById("source-cards");
+      host.replaceChildren();
+      sources.forEach((source, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `source-card${index === active ? " active" : ""}`;
+        button.setAttribute("aria-pressed", String(index === active));
+        const name = document.createElement("strong");
+        name.textContent = source.name;
+        const total = document.createElement("span");
+        total.className = "total";
+        total.textContent = number.format(source.total_tactic_mentions);
+        const sub = document.createElement("span");
+        sub.className = "sub";
+        sub.textContent = `${number.format(source.files_scanned)} Lean files`;
+        button.append(name, total, sub);
+        button.addEventListener("click", () => {
+          active = index;
+          renderCards();
+          renderProject();
+        });
+        host.append(button);
+      });
+    }
+
+    function renderChart(rows) {
+      const svg = document.getElementById("chart");
+      const shown = rows.slice(0, 24);
+      const height = Math.max(60, shown.length * 31 + 18);
+      const max = Math.max(1, ...shown.map(([, count]) => count));
+      svg.replaceChildren();
+      svg.setAttribute("viewBox", `0 0 1000 ${height}`);
+      svg.setAttribute("height", height);
+      if (shown.length === 0) {
+        svg.append(addSvg("text", { x: 8, y: 32, class: "bar-label" }, "No matching tactics"));
+        return;
+      }
+      shown.forEach(([name, count], index) => {
+        const y = 22 + index * 31;
+        svg.append(addSvg("text", { x: 4, y: y + 12, class: "bar-label" }, name));
+        svg.append(addSvg("rect", {
+          x: 190, y, width: Math.max(2, 630 * count / max), height: 18, rx: 4,
+          class: "bar"
+        }));
+        svg.append(addSvg("text", { x: 840, y: y + 13, class: "bar-value" }, number.format(count)));
+      });
+      svg.append(addSvg("line", { x1: 190, x2: 820, y1: height - 4, y2: height - 4, class: "rule" }));
+    }
+
+    function renderProject() {
+      const source = sources[active];
+      document.getElementById("project-title").textContent = source.name;
+      document.getElementById("project-meta").textContent =
+        `${number.format(source.total_tactic_mentions)} tactic-name occurrences across ${number.format(source.files_scanned)} Lean files`;
+      const rev = document.getElementById("revision");
+      rev.replaceChildren();
+      const link = document.createElement("a");
+      link.className = "source-link";
+      link.href = `${source.repository}/tree/${source.revision}`;
+      link.textContent = source.revision.slice(0, 12);
+      link.target = "_blank";
+      link.rel = "noreferrer";
+      rev.append("Source revision ", link);
+      document.getElementById("note").textContent = data.method;
+      updateRows();
+    }
+
+    function updateRows() {
+      const source = sources[active];
+      const query = document.getElementById("search").value.trim().toLowerCase();
+      const allRows = Object.entries(source.tactics)
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+      const rows = allRows.filter(([name]) => name.toLowerCase().includes(query));
+      renderChart(rows);
+      const tbody = document.getElementById("tactic-rows");
+      tbody.replaceChildren();
+      rows.forEach(([name, count]) => {
+        const tr = document.createElement("tr");
+        const tactic = document.createElement("td");
+        const code = document.createElement("code");
+        code.textContent = name;
+        tactic.append(code);
+        const value = document.createElement("td");
+        value.textContent = number.format(count);
+        tr.append(tactic, value);
+        tbody.append(tr);
+      });
+      if (rows.length === 0) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 2;
+        td.className = "empty";
+        td.textContent = "No matching tactic names.";
+        tr.append(td);
+        tbody.append(tr);
+      }
+    }
+
+    let data;
+    fetch("./data.json")
+      .then(response => {
+        if (!response.ok) throw new Error(`Could not load counts (${response.status})`);
+        return response.json();
+      })
+      .then(loaded => {
+        data = loaded;
+        sources = data.sources;
+        renderCards();
+        renderProject();
+        document.getElementById("search").addEventListener("input", updateRows);
+      })
+      .catch(error => {
+        document.getElementById("source-cards").textContent = error.message;
+      });
+  </script>
+</body>
+</html>
