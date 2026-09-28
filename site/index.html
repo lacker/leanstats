@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lean tactic counts</title>
+  <title>Lean tactic patterns</title>
   <style>
     :root {
       color-scheme: light;
@@ -13,8 +13,10 @@
       --card: #ffffff;
       --line: #dfe4e4;
       --blue: #206b86;
-      --mint: #a3e3c2;
+      --teal: #348c8b;
+      --orange: #c96e43;
       --pale: #e8f4ef;
+      --track: #e9eeed;
     }
     * { box-sizing: border-box; }
     body {
@@ -23,47 +25,86 @@
       color: var(--ink);
       font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-    main { max-width: 1120px; margin: 0 auto; padding: 56px 28px 72px; }
+    main { max-width: 1180px; margin: 0 auto; padding: 54px 28px 72px; }
     .eyebrow { color: var(--blue); font-size: .76rem; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
     h1 { margin: 10px 0 8px; font: 600 clamp(2.25rem, 6vw, 4rem)/1.05 Georgia, serif; letter-spacing: -.045em; }
-    .lede { max-width: 670px; color: var(--muted); font-size: 1.05rem; }
-    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 30px 0 28px; }
+    .lede { max-width: 760px; margin: 12px 0 0; color: var(--muted); font-size: 1.05rem; }
+    h2 { margin: 0; font: 600 1.65rem/1.2 Georgia, serif; letter-spacing: -.02em; }
+    h3 { margin: 0; font-size: 1rem; font-weight: 700; }
+    .section { margin-top: 38px; }
+    .section-head { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin-bottom: 15px; }
+    .section-head p, .panel-copy { max-width: 760px; margin: 7px 0 0; color: var(--muted); font-size: .91rem; }
+    .top-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .top-panel, .panel {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px;
+    }
+    .top-panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    .top-panel-head .caption { color: var(--muted); font-size: .78rem; white-space: nowrap; }
+    .bar-list { display: grid; gap: 11px; margin: 0; padding: 0; list-style: none; }
+    .bar-row { display: grid; grid-template-columns: minmax(98px, 1.05fr) minmax(35px, 1fr) auto; gap: 8px; align-items: center; }
+    .bar-name { min-width: 0; overflow-wrap: anywhere; font: .78rem/1.25 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .bar-track { height: 9px; overflow: hidden; border-radius: 99px; background: var(--track); }
+    .bar-fill { display: block; height: 100%; border-radius: inherit; background: var(--bar-color, var(--blue)); }
+    .bar-value { min-width: 72px; text-align: right; font-variant-numeric: tabular-nums; font-size: .76rem; line-height: 1.25; }
+    .bar-value strong { display: block; font-weight: 650; }
+    .bar-value small { display: block; color: var(--muted); font-size: .68rem; }
+    .analysis-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+    .panel h2 { font-size: 1.45rem; }
+    .rank-list { margin-top: 20px; }
+    .rank-row { padding: 11px 0 9px; border-bottom: 1px solid var(--line); }
+    .rank-main { display: grid; grid-template-columns: minmax(105px, .85fr) minmax(45px, 1fr) auto; gap: 10px; align-items: center; }
+    .rank-name { overflow-wrap: anywhere; font: .82rem/1.25 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .rank-track { height: 10px; overflow: hidden; border-radius: 99px; background: var(--track); }
+    .rank-fill { display: block; height: 100%; border-radius: inherit; background: var(--orange); }
+    .rank-ratio { min-width: 56px; text-align: right; font-size: .86rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .rank-detail { margin: 5px 0 0; color: var(--muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
+    .only-ai { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .only-ai h3 { margin-bottom: 5px; }
+    .only-ai p { margin: 0 0 12px; color: var(--muted); font-size: .82rem; }
+    .only-ai .bar-fill { background: var(--teal); }
+    .human-list .rank-fill { background: var(--blue); }
+    .source-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
     .source-card {
-      display: block; width: 100%; border: 1px solid var(--line); border-radius: 14px;
-      background: var(--card); padding: 18px 20px; color: inherit; text-align: left; cursor: pointer;
+      display: block; width: 100%; border: 1px solid var(--line); border-radius: 13px;
+      background: var(--card); padding: 16px 18px; color: inherit; text-align: left; cursor: pointer;
       transition: border-color .15s, transform .15s, box-shadow .15s;
     }
     .source-card:hover { transform: translateY(-2px); }
     .source-card.active { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue); }
-    .source-card strong { display: block; font-size: 1rem; }
-    .source-card .total { display: block; margin-top: 9px; font: 600 1.5rem/1.2 Georgia, serif; }
-    .source-card .sub { display: block; color: var(--muted); font-size: .84rem; margin-top: 2px; }
-    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 24px; }
+    .source-card strong { display: block; font-size: .96rem; }
+    .source-card .total { display: block; margin-top: 7px; font: 600 1.2rem/1.2 Georgia, serif; font-variant-numeric: tabular-nums; }
+    .source-card .sub { display: block; color: var(--muted); font-size: .8rem; margin-top: 3px; }
     .panel-head { display: flex; gap: 18px; align-items: end; justify-content: space-between; margin-bottom: 12px; }
-    h2 { margin: 0; font: 600 1.65rem/1.2 Georgia, serif; }
     .revision { color: var(--muted); font: .78rem ui-monospace, SFMono-Regular, Menlo, monospace; }
     .search { margin-top: 18px; width: min(100%, 320px); padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; font: inherit; }
     .chart-wrap { overflow-x: auto; }
-    svg { display: block; min-width: 620px; width: 100%; }
-    .bar-label { fill: var(--ink); font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
-    .bar-value { fill: var(--muted); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
-    .bar { fill: var(--blue); }
-    .bar:nth-of-type(3n) { fill: #348c8b; }
+    .detail-chart { display: block; min-width: 620px; width: 100%; }
+    .detail-label { fill: var(--ink); font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .detail-value { fill: var(--muted); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .detail-bar { fill: var(--blue); }
     .rule { stroke: var(--line); stroke-width: 1; }
     .table-wrap { overflow-x: auto; margin-top: 8px; }
     table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
     th, td { padding: 9px 8px; border-bottom: 1px solid var(--line); text-align: left; }
-    th { color: var(--muted); font-size: .78rem; font-weight: 650; text-transform: uppercase; letter-spacing: .06em; }
+    th { color: var(--muted); font-size: .75rem; font-weight: 650; text-transform: uppercase; letter-spacing: .06em; }
     td:last-child, th:last-child { text-align: right; }
     td code { background: var(--pale); border-radius: 4px; padding: 2px 5px; font-size: .87rem; }
     .note { margin: 20px 2px 0; color: var(--muted); font-size: .87rem; }
     .source-link { color: var(--blue); text-decoration-thickness: 1px; text-underline-offset: 3px; }
     .empty, .loading { color: var(--muted); padding: 24px 8px; }
-    @media (max-width: 760px) {
-      main { padding: 38px 16px 48px; }
-      .cards { grid-template-columns: 1fr; }
-      .panel { padding: 18px 14px; }
+    @media (max-width: 900px) {
+      main { padding: 42px 20px 60px; }
+      .top-grid { grid-template-columns: 1fr; }
+      .analysis-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 650px) {
+      main { padding: 34px 14px 48px; }
+      .section-head { display: block; }
+      .source-cards { grid-template-columns: 1fr; }
+      .top-panel, .panel { padding: 17px 14px; }
       .panel-head { align-items: start; flex-direction: column; }
+      .rank-main { grid-template-columns: minmax(100px, .9fr) minmax(35px, 1fr) auto; gap: 7px; }
+      .rank-detail { line-height: 1.5; }
     }
   </style>
 </head>
@@ -71,42 +112,249 @@
   <main>
     <div class="eyebrow">A small Lean source-text study</div>
     <h1>Which tactics show up?</h1>
-    <p class="lede">A side-by-side look at written tactic names in mathlib and two recent Lean certificates. Choose a project to see its raw counts.</p>
-    <section id="source-cards" class="cards" aria-label="Choose a source">
-      <div class="loading">Loading counts…</div>
-    </section>
-    <section class="panel" aria-labelledby="project-title">
-      <div class="panel-head">
+    <p class="lede">Compare the tactic spellings seen in Mathlib, OpenAI’s Navier–Stokes certificate, and Anthropic’s FLT certificate. The first view compares shares of each corpus; lower down, you can inspect the raw counts.</p>
+
+    <section class="section" aria-labelledby="top-title">
+      <div class="section-head">
         <div>
-          <h2 id="project-title">Tactics</h2>
-          <div id="project-meta" class="sub"></div>
+          <h2 id="top-title">Most common in each codebase</h2>
+          <p>Top tactic spellings as a share of that source’s tracked text matches. Counts appear below each percentage.</p>
         </div>
-        <div id="revision" class="revision"></div>
       </div>
-      <input id="search" class="search" type="search" placeholder="Filter tactic names" aria-label="Filter tactic names">
-      <div class="chart-wrap">
-        <svg id="chart" role="img" aria-label="Horizontal bars showing tactic-name counts"></svg>
+      <div id="top-charts" class="top-grid"><div class="loading">Loading counts…</div></div>
+    </section>
+
+    <section class="section" aria-labelledby="difference-title">
+      <div class="section-head">
+        <div>
+          <h2 id="difference-title">Where the distributions differ</h2>
+          <p>These are corpus comparisons: Mathlib is a broad human-authored library, while each certificate covers a narrow theorem.</p>
+        </div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th scope="col">Tactic spelling</th><th scope="col">Occurrences</th></tr></thead>
-          <tbody id="tactic-rows"></tbody>
-        </table>
+      <div class="analysis-grid">
+        <section class="panel" aria-labelledby="ai-title">
+          <h2 id="ai-title">Higher share in the AI certificates</h2>
+          <p class="panel-copy">Ranked by the average of the two certificate shares divided by Mathlib’s share. Each project gets equal weight. Only tactics with at least 100 Mathlib matches are ranked, to limit tiny denominators.</p>
+          <div id="ai-skewed" class="rank-list"><div class="loading">Loading comparison…</div></div>
+          <div class="only-ai">
+            <h3>Used in a certificate, with no Mathlib matches</h3>
+            <p>Zero-baseline cases have no finite ratio, so they are listed separately.</p>
+            <div id="ai-only" class="rank-list"></div>
+          </div>
+        </section>
+        <section class="panel" aria-labelledby="human-title">
+          <h2 id="human-title">Frequent in Mathlib, absent from both certificates</h2>
+          <p class="panel-copy">These spellings have Mathlib matches and zero matches in both certificate repositories. Some are specialized to Mathlib’s wider range of topics.</p>
+          <div id="human-only" class="rank-list human-list"><div class="loading">Loading comparison…</div></div>
+        </section>
       </div>
-      <p id="note" class="note"></p>
+    </section>
+
+    <section class="section" aria-labelledby="detail-title">
+      <div class="section-head">
+        <div>
+          <h2 id="detail-title">Explore raw counts</h2>
+          <p>Choose a corpus to browse every tracked spelling that appeared at least once.</p>
+        </div>
+      </div>
+      <div id="source-cards" class="source-cards"><div class="loading">Loading sources…</div></div>
+      <section class="panel" aria-labelledby="project-title">
+        <div class="panel-head">
+          <div>
+            <h2 id="project-title">Tactics</h2>
+            <div id="project-meta" class="panel-copy"></div>
+          </div>
+          <div id="revision" class="revision"></div>
+        </div>
+        <input id="search" class="search" type="search" placeholder="Filter tactic names" aria-label="Filter tactic names">
+        <div class="chart-wrap">
+          <svg id="chart" class="detail-chart" role="img" aria-label="Horizontal bars showing raw tactic-name counts"></svg>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">Tactic spelling</th><th scope="col">Text matches</th></tr></thead>
+            <tbody id="tactic-rows"></tbody>
+          </table>
+        </div>
+        <p id="note" class="note"></p>
+      </section>
     </section>
   </main>
   <script>
     const number = new Intl.NumberFormat();
+    const compact = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 });
     const NS = "http://www.w3.org/2000/svg";
     let sources = [];
     let active = 0;
+    let data;
 
     function addSvg(tag, attrs, text) {
       const node = document.createElementNS(NS, tag);
       for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
       if (text !== undefined) node.textContent = text;
       return node;
+    }
+
+    function rate(source, tactic) {
+      return (source.tactics[tactic] || 0) / source.total_tactic_mentions;
+    }
+
+    function topRows(source, limit = 10) {
+      return Object.entries(source.tactics)
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .slice(0, limit);
+    }
+
+    function renderTopCharts() {
+      const host = document.getElementById("top-charts");
+      host.replaceChildren();
+      const colors = ["var(--blue)", "var(--teal)", "var(--orange)"];
+      sources.forEach((source, sourceIndex) => {
+        const panel = document.createElement("section");
+        panel.className = "top-panel";
+        const heading = document.createElement("div");
+        heading.className = "top-panel-head";
+        const title = document.createElement("h3");
+        title.textContent = source.name;
+        const caption = document.createElement("span");
+        caption.className = "caption";
+        caption.textContent = "share · matches";
+        heading.append(title, caption);
+        const list = document.createElement("ol");
+        list.className = "bar-list";
+        list.setAttribute("aria-label", `Top tactic spellings in ${source.name}`);
+        const rows = topRows(source);
+        const largest = Math.max(1, ...rows.map(([, count]) => count / source.total_tactic_mentions));
+        rows.forEach(([tactic, count]) => {
+          const row = document.createElement("li");
+          row.className = "bar-row";
+          row.setAttribute("aria-label", `${tactic}: ${(100 * count / source.total_tactic_mentions).toFixed(2)} percent, ${number.format(count)} text matches`);
+          const label = document.createElement("code");
+          label.className = "bar-name";
+          label.textContent = tactic;
+          const track = document.createElement("span");
+          track.className = "bar-track";
+          track.setAttribute("aria-hidden", "true");
+          const fill = document.createElement("span");
+          fill.className = "bar-fill";
+          fill.style.setProperty("--bar-color", colors[sourceIndex]);
+          fill.style.width = `${100 * (count / source.total_tactic_mentions) / largest}%`;
+          track.append(fill);
+          const value = document.createElement("span");
+          value.className = "bar-value";
+          const percent = document.createElement("strong");
+          percent.textContent = `${(100 * count / source.total_tactic_mentions).toFixed(1)}%`;
+          const raw = document.createElement("small");
+          raw.textContent = compact.format(count);
+          value.append(percent, raw);
+          row.append(label, track, value);
+          list.append(row);
+        });
+        panel.append(heading, list);
+        host.append(panel);
+      });
+    }
+
+    function makeRankRow({ tactic, ratio, detail, color, width, label }) {
+      const row = document.createElement("div");
+      row.className = "rank-row";
+      const main = document.createElement("div");
+      main.className = "rank-main";
+      const name = document.createElement("code");
+      name.className = "rank-name";
+      name.textContent = tactic;
+      const track = document.createElement("span");
+      track.className = "rank-track";
+      track.setAttribute("aria-hidden", "true");
+      const fill = document.createElement("span");
+      fill.className = "rank-fill";
+      fill.style.width = `${Math.max(2, width)}%`;
+      if (color) fill.style.background = color;
+      track.append(fill);
+      const value = document.createElement("span");
+      value.className = "rank-ratio";
+      value.textContent = label;
+      main.append(name, track, value);
+      row.append(main);
+      if (detail) {
+        const small = document.createElement("p");
+        small.className = "rank-detail";
+        small.textContent = detail;
+        row.append(small);
+      }
+      return row;
+    }
+
+    function perThousand(source, tactic) {
+      return (rate(source, tactic) * 1000).toFixed(2);
+    }
+
+    function renderDifferences() {
+      const mathlib = sources.find(source => source.id === "mathlib");
+      const ns = sources.find(source => source.id === "openai-navier-stokes");
+      const flt = sources.find(source => source.id === "anthropic-flt");
+      const allNames = new Set([...Object.keys(mathlib.tactics), ...Object.keys(ns.tactics), ...Object.keys(flt.tactics)]);
+      const ratios = [...allNames]
+        .map(tactic => {
+          const humanCount = mathlib.tactics[tactic] || 0;
+          const aiRate = (rate(ns, tactic) + rate(flt, tactic)) / 2;
+          return { tactic, humanCount, aiRate, ratio: humanCount ? aiRate / rate(mathlib, tactic) : Infinity };
+        })
+        .filter(row => row.humanCount >= 100 && row.aiRate > 0 && Number.isFinite(row.ratio))
+        .sort((a, b) => b.ratio - a.ratio || a.tactic.localeCompare(b.tactic))
+        .slice(0, 10);
+      const ratioHost = document.getElementById("ai-skewed");
+      ratioHost.replaceChildren();
+      const maxRatio = Math.max(1, ...ratios.map(row => row.ratio));
+      ratios.forEach(row => {
+        ratioHost.append(makeRankRow({
+          tactic: row.tactic,
+          ratio: row.ratio,
+          width: 100 * row.ratio / maxRatio,
+          label: `${row.ratio.toFixed(1)}×`,
+          color: "var(--orange)",
+          detail: `Per 1,000 matches — Mathlib ${perThousand(mathlib, row.tactic)} · Navier–Stokes ${perThousand(ns, row.tactic)} · FLT ${perThousand(flt, row.tactic)}`
+        }));
+      });
+
+      const onlyAi = [...allNames]
+        .filter(tactic => !mathlib.tactics[tactic] && ((ns.tactics[tactic] || 0) + (flt.tactics[tactic] || 0) > 0))
+        .sort((a, b) => ((ns.tactics[b] || 0) + (flt.tactics[b] || 0)) - ((ns.tactics[a] || 0) + (flt.tactics[a] || 0)) || a.localeCompare(b));
+      const aiOnlyHost = document.getElementById("ai-only");
+      aiOnlyHost.replaceChildren();
+      const aiOnlyTop = onlyAi.slice(0, 8);
+      const maxAiOnly = Math.max(1, ...aiOnlyTop.map(t => (ns.tactics[t] || 0) + (flt.tactics[t] || 0)));
+      aiOnlyTop.forEach(tactic => {
+        const n = ns.tactics[tactic] || 0;
+        const f = flt.tactics[tactic] || 0;
+        aiOnlyHost.append(makeRankRow({
+          tactic,
+          width: 100 * (n + f) / maxAiOnly,
+          label: compact.format(n + f),
+          color: "var(--teal)",
+          detail: `Navier–Stokes ${number.format(n)} · FLT ${number.format(f)}`
+        }));
+      });
+      if (!aiOnlyTop.length) aiOnlyHost.textContent = "None in the current tracked list.";
+      const aiOnlyHeading = document.querySelector(".only-ai h3");
+      aiOnlyHeading.textContent = `Certificate-only spellings (${onlyAi.length})`;
+
+      const humanOnly = [...Object.entries(mathlib.tactics)]
+        .filter(([tactic]) => !(ns.tactics[tactic] || 0) && !(flt.tactics[tactic] || 0))
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .slice(0, 12);
+      const humanHost = document.getElementById("human-only");
+      humanHost.replaceChildren();
+      const maxHuman = Math.max(1, ...humanOnly.map(([, count]) => count));
+      humanOnly.forEach(([tactic, count]) => {
+        humanHost.append(makeRankRow({
+          tactic,
+          width: 100 * count / maxHuman,
+          label: compact.format(count),
+          color: "var(--blue)",
+          detail: `${number.format(count)} Mathlib matches · ${(100 * count / mathlib.total_tactic_mentions).toFixed(3)}% of tracked matches`
+        }));
+      });
     }
 
     function renderCards() {
@@ -121,10 +369,10 @@
         name.textContent = source.name;
         const total = document.createElement("span");
         total.className = "total";
-        total.textContent = number.format(source.total_tactic_mentions);
+        total.textContent = `${number.format(source.total_tactic_mentions)} text matches`;
         const sub = document.createElement("span");
         sub.className = "sub";
-        sub.textContent = `${number.format(source.files_scanned)} Lean files`;
+        sub.textContent = `${number.format(source.files_scanned)} Lean files · ${Object.keys(source.tactics).length} spellings found`;
         button.append(name, total, sub);
         button.addEventListener("click", () => {
           active = index;
@@ -135,7 +383,7 @@
       });
     }
 
-    function renderChart(rows) {
+    function renderRawChart(rows) {
       const svg = document.getElementById("chart");
       const shown = rows.slice(0, 24);
       const height = Math.max(60, shown.length * 31 + 18);
@@ -144,17 +392,17 @@
       svg.setAttribute("viewBox", `0 0 1000 ${height}`);
       svg.setAttribute("height", height);
       if (shown.length === 0) {
-        svg.append(addSvg("text", { x: 8, y: 32, class: "bar-label" }, "No matching tactics"));
+        svg.append(addSvg("text", { x: 8, y: 32, class: "detail-label" }, "No matching tactics"));
         return;
       }
       shown.forEach(([name, count], index) => {
         const y = 22 + index * 31;
-        svg.append(addSvg("text", { x: 4, y: y + 12, class: "bar-label" }, name));
+        svg.append(addSvg("text", { x: 4, y: y + 12, class: "detail-label" }, name));
         svg.append(addSvg("rect", {
           x: 190, y, width: Math.max(2, 630 * count / max), height: 18, rx: 4,
-          class: "bar"
+          class: "detail-bar"
         }));
-        svg.append(addSvg("text", { x: 840, y: y + 13, class: "bar-value" }, number.format(count)));
+        svg.append(addSvg("text", { x: 840, y: y + 13, class: "detail-value" }, number.format(count)));
       });
       svg.append(addSvg("line", { x1: 190, x2: 820, y1: height - 4, y2: height - 4, class: "rule" }));
     }
@@ -163,7 +411,7 @@
       const source = sources[active];
       document.getElementById("project-title").textContent = source.name;
       document.getElementById("project-meta").textContent =
-        `${number.format(source.total_tactic_mentions)} tactic-name occurrences across ${number.format(source.files_scanned)} Lean files`;
+        `${number.format(source.total_tactic_mentions)} tracked text matches across ${number.format(source.files_scanned)} Lean files`;
       const rev = document.getElementById("revision");
       rev.replaceChildren();
       const link = document.createElement("a");
@@ -183,7 +431,7 @@
       const allRows = Object.entries(source.tactics)
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
       const rows = allRows.filter(([name]) => name.toLowerCase().includes(query));
-      renderChart(rows);
+      renderRawChart(rows);
       const tbody = document.getElementById("tactic-rows");
       tbody.replaceChildren();
       rows.forEach(([name, count]) => {
@@ -208,7 +456,6 @@
       }
     }
 
-    let data;
     fetch("./data.json")
       .then(response => {
         if (!response.ok) throw new Error(`Could not load counts (${response.status})`);
@@ -217,11 +464,14 @@
       .then(loaded => {
         data = loaded;
         sources = data.sources;
+        renderTopCharts();
+        renderDifferences();
         renderCards();
         renderProject();
         document.getElementById("search").addEventListener("input", updateRows);
       })
       .catch(error => {
+        document.getElementById("top-charts").textContent = error.message;
         document.getElementById("source-cards").textContent = error.message;
       });
   </script>
