@@ -6,7 +6,7 @@ A small comparison of tactic-name counts in three Lean codebases:
 - OpenAI's Navier–Stokes certificate: `NavierStokes/`
 - Anthropic's Fermat's Last Theorem certificate: `Definitions/`, `P2M/`, and `Theorems/`
 
-The counts are deliberately plain: the script counts literal occurrences of a fixed list of common tactic spellings in the selected `.lean` files. It ignores line comments, nested block comments, and string contents. It does not expand macros or count tactic executions, and names outside the script's list are not included. Treat the numbers as a simple source-text comparison.
+The counts are deliberately plain: the script counts literal occurrences of 200 tracked tactic spellings in the selected `.lean` files. The list covers common Mathlib spellings plus project-specific tactics found in the certificates. It ignores line comments, nested block comments, and string contents. It does not expand macros or count tactic executions, and spellings outside the list are not included. Treat the numbers as a simple source-text comparison, not an exhaustive inventory.
 
 The repository URLs, exact revisions, Lean versions, and included paths are recorded in [`sources.json`](sources.json). The current counts are in [`site/data.json`](site/data.json).
 
